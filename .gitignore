@@ -1,0 +1,25 @@
+# Mengabaikan file env asli
+.env
+
+# file binary hasil build/compile Golang
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+bin/
+*.test
+/bin/
+*.log
+
+# Folder module Go
+/vendor/
+
+# File sampah OS
+.DS_Store
+Thumbs.db
+
+# Mengabaikan file yang di-upload oleh user (agar repo tidak bengkak)
+/storage/*
+!/storage/.keep
+
