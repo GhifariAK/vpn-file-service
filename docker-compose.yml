@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  file-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: file-service
+    # Uncomment ini jika inginn test local (Sperti mneggunakan postman)
+    ports:
+      - "${PORT}:${PORT}"
+    env_file:
+      - .env
+    volumes:
+      - file-storage:/data/storage
+    restart: unless-stopped
+
+    networks: # Memberikan IP statis, IP milik File service akan selalu ini
+      vpn_lab_net:
+        ipv4_address: 172.30.0.10
+
+volumes:
+  file-storage:
+
+# Konfigurasi Jaringan 
+networks:
+  vpn_lab_net:
+    name: vpn_lab_net
+    # Memberikan subnet spesifik agar IP statis bisa digunakan
+    ipam:
+      config:
+        - subnet: 172.30.0.0/24
