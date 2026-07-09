@@ -25,8 +25,5 @@ volumes:
 # Konfigurasi Jaringan 
 networks:
   vpn_lab_net:
+    external: true
     name: vpn_lab_net
-    # Memberikan subnet spesifik agar IP statis bisa digunakan
-    ipam:
-      config:
-        - subnet: 172.30.0.0/24
