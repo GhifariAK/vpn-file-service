@@ -7,8 +7,8 @@ services:
       dockerfile: Dockerfile
     container_name: file-service
     # Uncomment ini jika inginn test local (Sperti mneggunakan postman)
-    ports:
-      - "${PORT}:${PORT}"
+    # ports:
+    #   - "${PORT}:${PORT}"
     env_file:
       - .env
     volumes:

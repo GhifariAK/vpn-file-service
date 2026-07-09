@@ -19,7 +19,11 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o /out/file-service ./cmd/api
 
 # ==========================
 # TAHAP 2: runtime
-# Menggunakan OS Debian versi slim (Kecil dan ringan)
+# ALASAN MEMAKAI DEBIAN BOOKWORM (BUKAN ALPINE):
+# 1. Kompatibilitas Kernel: Debian memakai 'glibc' yang 100% stabil untuk 
+#    mengeksekusi Syscall (IOCTL), dibandingkan 'musl' milik Alpine.
+# 2. Fitur Jaringan Utuh: Kita butuh 'iproute2' & 'iptables' versi penuh untuk 
+#    NAT/Routing. Alpine (BusyBox) sering gagal mengeksekusi rule kompleks.
 FROM debian:bookworm-slim
 
 # Menginstall sertifikat root agar service ini bisa berkomunikasi dengan HTTPS (jika dibutuhkan kelak).
