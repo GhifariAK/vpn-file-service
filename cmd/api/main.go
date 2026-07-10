@@ -29,6 +29,18 @@ func main() {
 	mux.Handle("/download/", http.StripPrefix("/download/", http.FileServer(http.Dir(cfg.StoragePath))))
 	mux.HandleFunc("/delete", fileHandler.DeleteFile)
 
+	// Endpoint untuk health check
+	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		// Set header agar browser/curl tahu ini format JSON
+		w.Header().Set("Content-Type", "application/json")
+
+		// Kirim status 200 OK
+		w.WriteHeader(http.StatusOK)
+
+		// Kirim balasan pesan
+		w.Write([]byte(`{"status": "Success", "service": "vpn-file-service", "uptime": "ok"}`))
+	})
+
 	// 4. Jalankan Server
 	addr := ":" + cfg.Port
 	log.Printf("[FILE SERVICE] Aktif di http://localhost%s\n", addr)
