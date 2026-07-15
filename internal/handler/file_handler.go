@@ -41,8 +41,12 @@ func (h *FileHandler) UploadFile(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
+	// Keamanan Path Traversal: Paksa ambil nama file murni, abaikan path folder dari user
+	safeFileName := filepath.Base(handler.Filename)
+
 	// Menentukan jalur simpan (storage/nama-file-asli.ext)
-	filePath := filepath.Join(h.storagePath, handler.Filename)
+	filePath := filepath.Join(h.storagePath, safeFileName)
+
 	dst, err := os.Create(filePath)
 	if err != nil {
 		http.Error(w, "Gagal membuat file di server", http.StatusInternalServerError)
@@ -57,7 +61,7 @@ func (h *FileHandler) UploadFile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, "Berhasil! File %s telah tersimpan di brankas.\n", handler.Filename)
+	fmt.Fprintf(w, "Berhasil! File %s telah tersimpan di brankas.\n", safeFileName)
 }
 
 // DeleteFile menangani request DELETE untuk menghapus file secara manual
@@ -74,7 +78,8 @@ func (h *FileHandler) DeleteFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	filePath := filepath.Join(h.storagePath, fileName)
+	safeFileName := filepath.Base(fileName)
+	filePath := filepath.Join(h.storagePath, safeFileName)
 
 	// Hapus file secara fisik dari hardisk
 	if err := os.Remove(filePath); err != nil {
@@ -83,7 +88,7 @@ func (h *FileHandler) DeleteFile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, "File %s berhasil dihapus dari brankas.\n", fileName)
+	fmt.Fprintf(w, "File %s berhasil dihapus dari brankas.\n", safeFileName)
 }
 
 // StartAutoCleanup akan berjalan terus-menerus di background (Goroutine).

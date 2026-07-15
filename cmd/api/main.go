@@ -39,6 +39,7 @@ func main() {
 
 		// Kirim balasan pesan
 		w.Write([]byte(`{"status": "Success", "service": "vpn-file-service", "uptime": "ok"}`))
+		log.Printf("[INFO] Health Check (/health) sukses dipanggil oleh: %s", r.RemoteAddr)
 	})
 
 	// 4. Jalankan Server
