@@ -38,7 +38,7 @@ func main() {
 		w.WriteHeader(http.StatusOK)
 
 		// Kirim balasan pesan
-		w.Write([]byte(`{"status": "Success", "service": "vpn-file-service", "uptime": "ok"}`))
+		w.Write([]byte(`{"status": "success", "service": "vpn-file-service", "uptime": "ok"}`))
 		log.Printf("[INFO] Health Check (/health) sukses dipanggil oleh: %s", r.RemoteAddr)
 	})
 
