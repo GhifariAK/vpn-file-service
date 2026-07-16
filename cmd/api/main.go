@@ -8,6 +8,18 @@ import (
 	"vpn-file-service/internal/handler"
 )
 
+// Middleware sederhana untuk mengecek API Key
+func authMiddleware(expectedKey string, next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		clientKey := r.Header.Get("X-API-KEY")
+		if clientKey != expectedKey {
+			http.Error(w, "Unauthorized: API Key salah atau tidak ada", http.StatusUnauthorized)
+			return
+		}
+		next(w, r)
+	}
+}
+
 func main() {
 	// 1. Load Konfigurasi
 	cfg := config.LoadConfig()
@@ -23,11 +35,9 @@ func main() {
 
 	// Endpoint untuk upload & Delete file
 	mux.HandleFunc("/upload", fileHandler.UploadFile)
-
-	// Endpoint untuk download/melihat file yang sudah di-upload
-	// (Menggunakan FileServer bawaan Go yang sangat efisien)
-	mux.Handle("/download/", http.StripPrefix("/download/", http.FileServer(http.Dir(cfg.StoragePath))))
 	mux.HandleFunc("/delete", fileHandler.DeleteFile)
+
+	mux.HandleFunc("/download", fileHandler.DownloadFile)
 
 	// Endpoint untuk health check
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
@@ -46,7 +56,15 @@ func main() {
 	addr := ":" + cfg.Port
 	log.Printf("[FILE SERVICE] Aktif di http://localhost%s\n", addr)
 
-	err := http.ListenAndServe(addr, mux)
+	srv := &http.Server{
+		Addr:         addr,
+		Handler:      mux,
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 30 * time.Second,
+		IdleTimeout:  60 * time.Second,
+	}
+
+	err := srv.ListenAndServe()
 	if err != nil {
 		log.Fatalf("Server mati: %v", err)
 	}

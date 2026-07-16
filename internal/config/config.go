@@ -11,6 +11,7 @@ import (
 type Config struct {
 	Port        string
 	StoragePath string
+	APIKey      string
 }
 
 // LoadConfig membaca file .env dan mengembalikan objek Config
@@ -24,6 +25,7 @@ func LoadConfig() *Config {
 	return &Config{
 		Port:        getEnv("PORT", "9090"),
 		StoragePath: getEnv("STORAGE_PATH", "./storage"),
+		APIKey:      getEnv("API_KEY", "rahasia-file-123"),
 	}
 }
 

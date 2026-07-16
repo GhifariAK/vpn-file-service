@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -30,8 +31,14 @@ func (h *FileHandler) UploadFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Batasi ukuran maksimal file yang di-upload (contoh: 10 MB)
-	r.ParseMultipartForm(10 << 20)
+	// Membatasi ukuran request Body maksimal 50 MB
+	r.Body = http.MaxBytesReader(w, r.Body, 50<<20)
+
+	// Alokasikan 10 MB di memori RAM, sisanya dibuang ke file temp OS
+	if err := r.ParseMultipartForm(10 << 20); err != nil {
+		http.Error(w, "File terlalu besar (Maks 50MB) atau request tidak valid", http.StatusBadRequest)
+		return
+	}
 
 	// Mengambil file dari form-data dengan key "file"
 	file, handler, err := r.FormFile("file")
@@ -43,9 +50,12 @@ func (h *FileHandler) UploadFile(w http.ResponseWriter, r *http.Request) {
 
 	// Keamanan Path Traversal: Paksa ambil nama file murni, abaikan path folder dari user
 	safeFileName := filepath.Base(handler.Filename)
+	ext := filepath.Ext(safeFileName)
+	baseName := strings.TrimSuffix(safeFileName, ext)
 
 	// Menentukan jalur simpan (storage/nama-file-asli.ext)
-	filePath := filepath.Join(h.storagePath, safeFileName)
+	newFileName := fmt.Sprintf("%s-%d%s", baseName, time.Now().Unix(), ext)
+	filePath := filepath.Join(h.storagePath, newFileName)
 
 	dst, err := os.Create(filePath)
 	if err != nil {
@@ -62,6 +72,31 @@ func (h *FileHandler) UploadFile(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintf(w, "Berhasil! File %s telah tersimpan di brankas.\n", safeFileName)
+}
+
+func (h *FileHandler) DownloadFile(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method tidak diizinkan", http.StatusMethodNotAllowed)
+		return
+	}
+
+	fileName := r.URL.Query().Get("name")
+	if fileName == "" {
+		http.Error(w, "Nama file harus disertakan (Contoh: /download?name=file.pdf)", http.StatusBadRequest)
+		return
+	}
+
+	safeFileName := filepath.Base(fileName)
+	filePath := filepath.Join(h.storagePath, safeFileName)
+
+	// Pastikan file tersebut ada
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		http.Error(w, "File tidak ditemukan", http.StatusNotFound)
+		return
+	}
+
+	// Gunakan http.ServeFile yang lebih aman tanpa melist isi direktori
+	http.ServeFile(w, r, filePath)
 }
 
 // DeleteFile menangani request DELETE untuk menghapus file secara manual
