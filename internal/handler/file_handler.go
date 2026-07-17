@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -71,7 +72,7 @@ func (h *FileHandler) UploadFile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, "Berhasil! File %s telah tersimpan di brankas.\n", safeFileName)
+	fmt.Fprintf(w, "Berhasil! File %s telah tersimpan.\n", safeFileName)
 }
 
 func (h *FileHandler) DownloadFile(w http.ResponseWriter, r *http.Request) {
@@ -123,7 +124,48 @@ func (h *FileHandler) DeleteFile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, "File %s berhasil dihapus dari brankas.\n", safeFileName)
+	fmt.Fprintf(w, "File %s berhasil dihapus.\n", safeFileName)
+}
+
+// ListFiles mengembalikan daftar file di storage dalam format JSON
+func (h *FileHandler) ListFiles(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method tidak diizinkan", http.StatusMethodNotAllowed)
+		return
+	}
+
+	files, err := os.ReadDir(h.storagePath)
+	if err != nil {
+		http.Error(w, "Gagal membaca direktori storage", http.StatusInternalServerError)
+		return
+	}
+
+	// Buat slice (array) untuk menampung data file
+	var fileList []map[string]interface{}
+
+	for _, file := range files {
+		if !file.IsDir() {
+			info, err := file.Info()
+			if err != nil {
+				continue
+			}
+
+			// Masukkan nama, ukuran (bytes), dan waktu modifikasi ke dalam array
+			fileList = append(fileList, map[string]interface{}{
+				"name": file.Name(),
+				"size": info.Size(),
+				"date": info.ModTime().Format("2006-01-02 15:04:05"), // Format waktu standar
+			})
+		}
+	}
+
+	// Kembalikan sebagai JSON
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status": "success",
+		"total":  len(fileList),
+		"files":  fileList,
+	})
 }
 
 // StartAutoCleanup akan berjalan terus-menerus di background (Goroutine).
@@ -142,7 +184,7 @@ func (h *FileHandler) StartAutoCleanup(interval time.Duration, maxAge time.Durat
 				continue // Abaikan error dan coba lagi di interval berikutnya
 			}
 
-			waktuSekarang := time.Now()
+			currentTime := time.Now()
 
 			// Cek satu per satu file di dalam folder
 			for _, file := range files {
@@ -152,7 +194,7 @@ func (h *FileHandler) StartAutoCleanup(interval time.Duration, maxAge time.Durat
 				}
 
 				// Jika umur file sudah melebihi batas maksimal, hapus!
-				if waktuSekarang.Sub(info.ModTime()) > maxAge {
+				if currentTime.Sub(info.ModTime()) > maxAge {
 					hapusPath := filepath.Join(h.storagePath, info.Name())
 					os.Remove(hapusPath)
 					fmt.Printf("[AUTO-CLEANUP] Menghapus file lama: %s\n", info.Name())

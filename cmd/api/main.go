@@ -28,7 +28,7 @@ func main() {
 	fileHandler := handler.NewFileHandler(cfg.StoragePath)
 
 	// Cleanup : cek setiap 1 jam sekali, dan Hapus file yang sudah berumur 1 jam
-	fileHandler.StartAutoCleanup(1*time.Hour, 1*time.Hour)
+	fileHandler.StartAutoCleanup(5*time.Minute, 7*time.Minute)
 
 	// 3. Daftarkan Routes (Endpoint HTTP)
 	mux := http.NewServeMux()
@@ -37,6 +37,7 @@ func main() {
 	mux.HandleFunc("/upload", fileHandler.UploadFile)
 	mux.HandleFunc("/delete", fileHandler.DeleteFile)
 
+	mux.HandleFunc("/list", authMiddleware(cfg.APIKey, fileHandler.ListFiles))
 	mux.HandleFunc("/download", fileHandler.DownloadFile)
 
 	// Endpoint untuk health check
